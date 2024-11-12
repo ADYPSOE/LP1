@@ -1,0 +1,130 @@
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+class MacroProcessorPass1 {
+    
+    static class Macro {
+        String name;
+        int mdtIndex;
+        List<String> parameters;
+
+        Macro(String name, int mdtIndex, List<String> parameters) {
+            this.name = name;
+            this.mdtIndex = mdtIndex;
+            this.parameters = parameters;
+        }
+    }
+
+    private List<Macro> MNT = new ArrayList<>();         // Macro Name Table
+    private List<String> MDT = new ArrayList<>();         // Macro Definition Table
+    private Map<String, Integer> ALA = new HashMap<>();   // Argument List Array
+
+    public void pass1(String[] code) {
+        boolean isMacroDefinition = false;
+        int mdtIndex = 0;
+        Macro currentMacro = null;
+
+        for (String line : code) {
+            String[] tokens = line.split("\\s+");
+            String keyword = tokens[0];
+
+            if (keyword.equals("MACRO")) {
+                isMacroDefinition = true;
+                continue;
+            }
+
+            if (isMacroDefinition) {
+                if (keyword.equals("MEND")) {
+                    isMacroDefinition = false;
+                    MDT.add("MEND");
+                    mdtIndex++;
+                    MNT.add(currentMacro);
+                    currentMacro = null;
+                } else if (currentMacro == null) {
+                    String macroName = tokens[0];
+                    List<String> parameters = new ArrayList<>();
+
+                    // Process parameters and handle default values
+                    for (int i = 1; i < tokens.length; i++) {
+                        String param = tokens[i];
+                        String paramName = param.split("=")[0];
+                        ALA.put(paramName, ALA.size());  // Store in ALA
+
+                        if (param.contains("=")) {
+                            String defaultValue = param.split("=")[1];
+                            ALA.put(paramName, ALA.size());
+                            MDT.add("SET " + paramName + " " + defaultValue);
+                            mdtIndex++;
+                        }
+                        parameters.add(paramName);
+                    }
+                    currentMacro = new Macro(macroName, mdtIndex, parameters);
+                } else {
+                    // Add macro instructions to MDT with arguments
+                    StringBuilder macroLine = new StringBuilder(tokens[0]);
+                    for (int i = 1; i < tokens.length; i++) {
+                        String param = tokens[i];
+                        if (ALA.containsKey(param)) {
+                            macroLine.append(" #").append(ALA.get(param));
+                        } else {
+                            macroLine.append(" ").append(param);
+                        }
+                    }
+                    MDT.add(macroLine.toString());
+                    mdtIndex++;
+                }
+            }
+        }
+    }
+
+    // Function to display the MNT, MDT, and ALA
+    public void displayTables() {
+        System.out.println("Macro Name Table (MNT):");
+        for (Macro macro : MNT) {
+            System.out.println("Name: " + macro.name + ", MDT Index: " + macro.mdtIndex + ", Parameters: " + macro.parameters);
+        }
+
+        System.out.println("\nMacro Definition Table (MDT):");
+        for (int i = 0; i < MDT.size(); i++) {
+            System.out.println(i + " : " + MDT.get(i));
+        }
+
+        System.out.println("\nArgument List Array (ALA):");
+        for (Map.Entry<String, Integer> entry : ALA.entrySet()) {
+            System.out.println(entry.getKey() + " : " + entry.getValue());
+        }
+    }
+
+    public static void main(String[] args) {
+        // Sample code with macros and main program
+        String[] code = {
+                "MACRO",
+                "M1 &X, &Y, &A=AREG, &B=",
+                "MOVER &A, &X",
+                "ADD &A, ='1'",
+                "MOVER &B, &Y",
+                "ADD &B, ='5'",
+                "MEND",
+                "MACRO",
+                "M2 &P, &Q, &U=CREG, &V=DREG",
+                "MOVER &U, &P",
+                "MOVER &V, &Q",
+                "ADD &U, ='15'",
+                "ADD &V, ='10'",
+                "MEND",
+                "START 100",
+                "M1 10, 20, &B=CREG",
+                "M2 100, 200, &V=AREG, &U=BREG",
+                "END"
+        };
+
+        // Initialize Pass 1 and run it on the input code
+        MacroProcessorPass1 pass1 = new MacroProcessorPass1();
+        pass1.pass1(code);
+
+        // Display the tables created by Pass 1
+        pass1.displayTables();
+    }
+}

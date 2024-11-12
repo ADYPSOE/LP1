@@ -1,0 +1,110 @@
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
+
+class Process {
+    int processId;
+    int arrivalTime;
+    int burstTime;
+    int remainingTime;
+    int waitingTime;
+    int turnaroundTime;
+    boolean isCompleted;
+
+    public Process(int processId, int arrivalTime, int burstTime) {
+        this.processId = processId;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.remainingTime = burstTime;
+        this.isCompleted = false;
+    }
+}
+
+public class SJFPreemptive {
+
+    public static void calculateSJFPreemptive(List<Process> processes) {
+        int n = processes.size();
+        int completed = 0;
+        int currentTime = 0;
+
+        while (completed != n) {
+            // Find process with shortest remaining time at the current time
+            Process currentProcess = null;
+            int minRemainingTime = Integer.MAX_VALUE;
+
+            for (Process process : processes) {
+                if (!process.isCompleted && process.arrivalTime <= currentTime &&
+                    process.remainingTime < minRemainingTime) {
+                    minRemainingTime = process.remainingTime;
+                    currentProcess = process;
+                }
+            }
+
+            if (currentProcess == null) {
+                currentTime++;
+                continue;
+            }
+
+            // Process the selected job for 1 time unit
+            currentProcess.remainingTime--;
+            currentTime++;
+
+            // If the process is completed
+            if (currentProcess.remainingTime == 0) {
+                currentProcess.isCompleted = true;
+                completed++;
+
+                // Calculate waiting time and turnaround time
+                currentProcess.turnaroundTime = currentTime - currentProcess.arrivalTime;
+                currentProcess.waitingTime = currentProcess.turnaroundTime - currentProcess.burstTime;
+            }
+        }
+    }
+
+    public static void displayResults(List<Process> processes) {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+
+        System.out.println("\nProcess\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time");
+        for (Process process : processes) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+            System.out.println(process.processId + "\t\t" + process.arrivalTime + "\t\t" +
+                    process.burstTime + "\t\t" + process.waitingTime + "\t\t" + process.turnaroundTime);
+        }
+
+        double averageWaitingTime = (double) totalWaitingTime / processes.size();
+        double averageTurnaroundTime = (double) totalTurnaroundTime / processes.size();
+
+        System.out.printf("\nAverage Waiting Time: %.2f", averageWaitingTime);
+        System.out.printf("\nAverage Turnaround Time: %.2f\n", averageTurnaroundTime);
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter the number of processes: ");
+        int n = scanner.nextInt();
+        List<Process> processes = new ArrayList<>();
+
+        // Input process data
+        for (int i = 0; i < n; i++) {
+            System.out.print("Enter arrival time and burst time for process " + (i + 1) + ": ");
+            int arrivalTime = scanner.nextInt();
+            int burstTime = scanner.nextInt();
+            processes.add(new Process(i + 1, arrivalTime, burstTime));
+        }
+
+        // Sort processes by arrival time to simulate arrival in the right order
+        processes.sort(Comparator.comparingInt(p -> p.arrivalTime));
+
+        // Calculate Waiting Time and Turnaround Time using SJF Preemptive
+        calculateSJFPreemptive(processes);
+
+        // Display results
+        displayResults(processes);
+
+        scanner.close();
+    }
+}

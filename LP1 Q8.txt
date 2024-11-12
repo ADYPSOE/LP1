@@ -1,0 +1,122 @@
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Scanner;
+
+class Process {
+    int processId;
+    int arrivalTime;
+    int burstTime;
+    int remainingTime;
+    int waitingTime;
+    int turnaroundTime;
+
+    public Process(int processId, int arrivalTime, int burstTime) {
+        this.processId = processId;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.remainingTime = burstTime;
+    }
+}
+
+public class RoundRobinScheduling {
+
+    public static void calculateRoundRobin(ArrayList<Process> processes, int timeQuantum) {
+        Queue<Process> queue = new LinkedList<>();
+        int currentTime = 0;
+        int completed = 0;
+        int n = processes.size();
+
+        // Enqueue processes in arrival order
+        processes.sort((p1, p2) -> p1.arrivalTime - p2.arrivalTime);
+        
+        // Track the processes in queue and manage waiting times
+        int index = 0; // Tracks the arrival of new processes
+        while (completed < n) {
+            // Add newly arrived processes to the queue
+            while (index < n && processes.get(index).arrivalTime <= currentTime) {
+                queue.add(processes.get(index));
+                index++;
+            }
+            
+            // If queue is empty and there are remaining processes, increment time
+            if (queue.isEmpty()) {
+                currentTime++;
+                continue;
+            }
+
+            // Process the first item in the queue
+            Process currentProcess = queue.poll();
+            int executionTime = Math.min(currentProcess.remainingTime, timeQuantum);
+            
+            currentProcess.remainingTime -= executionTime;
+            currentTime += executionTime;
+
+            // Add waiting time for all other processes in the queue
+            for (Process p : queue) {
+                p.waitingTime += executionTime;
+            }
+
+            // If the process is completed
+            if (currentProcess.remainingTime == 0) {
+                currentProcess.turnaroundTime = currentTime - currentProcess.arrivalTime;
+                completed++;
+            } else {
+                // Process is not finished, add it back to the end of the queue
+                queue.add(currentProcess);
+            }
+
+            // Add newly arrived processes to the queue again after time slice
+            while (index < n && processes.get(index).arrivalTime <= currentTime) {
+                queue.add(processes.get(index));
+                index++;
+            }
+        }
+    }
+
+    public static void displayResults(ArrayList<Process> processes) {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+
+        System.out.println("\nProcess\tArrival Time\tBurst Time\tWaiting Time\tTurnaround Time");
+        for (Process process : processes) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+            System.out.println(process.processId + "\t\t" + process.arrivalTime + "\t\t" + process.burstTime +
+                    "\t\t" + process.waitingTime + "\t\t" + process.turnaroundTime);
+        }
+
+        double averageWaitingTime = (double) totalWaitingTime / processes.size();
+        double averageTurnaroundTime = (double) totalTurnaroundTime / processes.size();
+
+        System.out.printf("\nAverage Waiting Time: %.2f", averageWaitingTime);
+        System.out.printf("\nAverage Turnaround Time: %.2f\n", averageTurnaroundTime);
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter the number of processes: ");
+        int n = scanner.nextInt();
+        ArrayList<Process> processes = new ArrayList<>();
+
+        // Input process data
+        for (int i = 0; i < n; i++) {
+            System.out.print("Enter arrival time and burst time for process " + (i + 1) + ": ");
+            int arrivalTime = scanner.nextInt();
+            int burstTime = scanner.nextInt();
+            processes.add(new Process(i + 1, arrivalTime, burstTime));
+        }
+
+        System.out.print("Enter time quantum: ");
+        int timeQuantum = scanner.nextInt();
+
+        // Calculate Waiting Time and Turnaround Time using Round Robin Scheduling
+        calculateRoundRobin(processes, timeQuantum);
+
+        // Display results
+        displayResults(processes);
+
+        scanner.close();
+    }
+}

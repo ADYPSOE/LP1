@@ -1,0 +1,100 @@
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Scanner;
+
+class Process {
+    int processId;
+    int arrivalTime;
+    int burstTime;
+    int priority;
+    int waitingTime;
+    int turnaroundTime;
+
+    public Process(int processId, int arrivalTime, int burstTime, int priority) {
+        this.processId = processId;
+        this.arrivalTime = arrivalTime;
+        this.burstTime = burstTime;
+        this.priority = priority;
+    }
+}
+
+public class PriorityNonPreemptive {
+
+    public static void calculatePriorityNonPreemptive(List<Process> processes) {
+        int n = processes.size();
+        int completed = 0;
+        int currentTime = 0;
+
+        while (completed != n) {
+            // Find the highest priority process that has arrived
+            Process highestPriorityProcess = null;
+            for (Process process : processes) {
+                if (process.arrivalTime <= currentTime && process.turnaroundTime == 0) {
+                    if (highestPriorityProcess == null || process.priority < highestPriorityProcess.priority) {
+                        highestPriorityProcess = process;
+                    }
+                }
+            }
+
+            if (highestPriorityProcess == null) {
+                currentTime++;
+                continue;
+            }
+
+            // Execute the selected process
+            highestPriorityProcess.waitingTime = currentTime - highestPriorityProcess.arrivalTime;
+            highestPriorityProcess.turnaroundTime = highestPriorityProcess.waitingTime + highestPriorityProcess.burstTime;
+            currentTime += highestPriorityProcess.burstTime;
+            completed++;
+        }
+    }
+
+    public static void displayResults(List<Process> processes) {
+        int totalWaitingTime = 0;
+        int totalTurnaroundTime = 0;
+
+        System.out.println("\nProcess\tArrival Time\tBurst Time\tPriority\tWaiting Time\tTurnaround Time");
+        for (Process process : processes) {
+            totalWaitingTime += process.waitingTime;
+            totalTurnaroundTime += process.turnaroundTime;
+            System.out.println(process.processId + "\t\t" + process.arrivalTime + "\t\t" +
+                    process.burstTime + "\t\t" + process.priority + "\t\t" +
+                    process.waitingTime + "\t\t" + process.turnaroundTime);
+        }
+
+        double averageWaitingTime = (double) totalWaitingTime / processes.size();
+        double averageTurnaroundTime = (double) totalTurnaroundTime / processes.size();
+
+        System.out.printf("\nAverage Waiting Time: %.2f", averageWaitingTime);
+        System.out.printf("\nAverage Turnaround Time: %.2f\n", averageTurnaroundTime);
+    }
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.print("Enter the number of processes: ");
+        int n = scanner.nextInt();
+        List<Process> processes = new ArrayList<>();
+
+        // Input process data
+        for (int i = 0; i < n; i++) {
+            System.out.print("Enter arrival time, burst time, and priority for process " + (i + 1) + ": ");
+            int arrivalTime = scanner.nextInt();
+            int burstTime = scanner.nextInt();
+            int priority = scanner.nextInt();
+            processes.add(new Process(i + 1, arrivalTime, burstTime, priority));
+        }
+
+        // Sort processes by arrival time, then by priority for tie-breaking
+        processes.sort(Comparator.comparingInt((Process p) -> p.arrivalTime).thenComparingInt(p -> p.priority));
+
+        // Calculate Waiting Time and Turnaround Time using Priority Non-Preemptive Scheduling
+        calculatePriorityNonPreemptive(processes);
+
+        // Display results
+        displayResults(processes);
+
+        scanner.close();
+    }
+}
